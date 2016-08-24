@@ -3,7 +3,6 @@
  * http://airtight.io
  * Licensed under the MIT license
  */
-
 // the semi-colon before the function invocation is a safety
 // net against concatenated scripts and/or other plugins
 // that are not closed properly.
@@ -42,7 +41,13 @@
 				// return "<div><img src='" + element.img + "' style='width:50px;' />" + element.name + "</div>";
 			},
 			// callback for user pressing eter on a selection
-			onEnter: function(data) {
+			onEnter: function(element) {
+				return;
+			},
+			onClick: function(element) {
+				return;
+			},
+			onBlur: function() {
 				return;
 			},
 			// should the list inherit styles from the input?
@@ -55,7 +60,7 @@
 			ajaxOptions: {
 				// url: 'http://yoursitehere.com/response.json',
 				dataType: 'json', // or jsonp
-				method: 'GET'
+				method  : 'GET'
 			}
 		};
 
@@ -74,10 +79,10 @@
 		this._name = pluginName;
 
 		this._state = {
-			focused: false,
+			focused : false,
 			expanded: false,
-			count: 0,
-			current: 0
+			count   : 0,
+			current : 0
 		};
 
 		this._inputw;
@@ -87,6 +92,8 @@
 		this._$list;
 
 		this._ajaxRequest;
+
+		this._results;
 
 		this.init();
 	}
@@ -140,9 +147,6 @@
 				.on('focus', function(e) {
 					this.onFocus(e)
 				}.bind(this))
-				.on('blur', function(e) {
-					this.onBlur(e)
-				}.bind(this))
 				.on('keydown', function(e) {
 					this.onKeydown(e)
 				}.bind(this))
@@ -151,24 +155,26 @@
 				}.bind(this));
 
 			$('body').on('click', function(e) {
-				if (this._$wrap.has($(e.target))) {
-					this._state.focused = true;
-					this._$list.show();
-				}
-				else {
-					this._state.focused = false;
-					this._$list.hide();
+				if ($(e.target).hasClass('aircomplete') || $(e.target).parents('.aircomplete').size()) {
+					this.onFocus(e);
+				} else {
+					this.onBlur(e);
 				}
 			}.bind(this));
 
 		},
 
 		onFocus: function(e) {
-			if (typeof this.options.data == 'string') {
+			if ($.isFunction(this.options.data)) {
+				var data = this.options.data();
+			} else {
+				var data = this.options.data;
+			}
+			if (typeof data == 'string') {
 				$.ajax({
-					url: this.options.data,
+					url: data,
 					success: function(result) {
-						this.options.data = result;
+						data = result;
 					},
 					dataType: 'json',
 					async: false
@@ -180,11 +186,22 @@
 		},
 
 		onBlur: function(e) {
+			this.options.onBlur();
 
+			this._state.focused = false;
+			this._state.current = 0;
+			this._state.count = 0;
+			this._$list.html("");
 		},
 
 		onKeydown: function(e) {
 			switch (e.which) {
+				case 9: // tab
+					this.onBlur(e);
+					break;
+				case 13: // enter
+					e.preventDefault();
+					break;
 				case 38: // up
 					e.preventDefault();
 					if (this._state.expanded) {
@@ -210,6 +227,7 @@
 
 		onKeyup: function(e) {
 			e.preventDefault();
+
 			switch (e.which) {
 				case 38: // up & down arrows get ignored
 				case 40:
@@ -218,7 +236,7 @@
 					if (this._state.current) {
 
 						var proceed = this.options.onEnter(
-							this.options.data[this._state.current - 1]
+							this._results[this._state.current - 1]
 						);
 
 						if (proceed) {
@@ -238,15 +256,26 @@
 					const term = $(this.element).val();
 					if (term.length >= this.options.minSearchStringLength) {
 						this.search(term);
+					} else {
+						this._state.expanded = false;
+						this._state.count = false;
+						this._state.current = 0;
+						this._$list.html("");
 					}
 			}
 		},
 
 		onClick: function(e) {
-			if (this._state.current) {
+			if($(e.target).closest('li.aircomplete-list-item')) {
+				this._state.current = $(e.target).closest('li.aircomplete-list-item').index() + 1;
 
+				this._$list.find("li").removeClass("aircomplete-selected");
+				this._$list.find("li:nth(" + (this._state.current - 1) + ")").addClass("aircomplete-selected");
+			}
+
+			if (this._state.current) {
 				var proceed = this.options.onClick(
-					this.options.data[this._state.current - 1]
+					this._results[this._state.current - 1]
 				);
 
 				if (proceed) {
@@ -257,6 +286,8 @@
 					this._state.current = 0;
 					this._state.count = 0;
 				}
+			} else {
+				console.log(e.target);
 			}
 		},
 
@@ -280,9 +311,20 @@
 					this.options.data = results;
 					this.updateResults(results, term);
 				}.bind(this));
+				// is it a function?
+			} else if ($.isFunction(this.options.data)) {
+				var results = [];
+				var data = this.options.data();
 
-			}
-			else {
+				for (var i in data) {
+					if (this.options.match(data[i], term)) {
+						results.push(data[i]);
+					}
+				}
+
+				this.updateResults(results, term);
+				// default - static json
+			} else {
 				var results = [];
 
 				for (var i in this.options.data) {
@@ -304,12 +346,14 @@
 					items += "<li class='aircomplete-list-item'>" + this.options.template(results[i], term) + "</li>";
 				}
 				this._$list.html(items);
-			}
-			else {
+			} else {
 				this._state.expanded = false;
 				this._state.count = false;
 				this._state.current = 0;
+				this._$list.html("");
 			}
+
+			this._results = results;
 		}
 
 	};
