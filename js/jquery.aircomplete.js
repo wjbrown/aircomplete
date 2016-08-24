@@ -40,9 +40,15 @@
 				return text;
 				// return "<div><img src='" + element.img + "' style='width:50px;' />" + element.name + "</div>";
 			},
-			// callback for user pressing enter on a selection
-			onEnter: function(data) {
-				return data;
+			// callback for user pressing eter on a selection
+			onEnter: function(element) {
+				return;
+			},
+			onClick: function(element) {
+				return;
+			},
+			onBlur: function() {
+				return;
 			},
 			// should the list inherit styles from the input?
 			inheritStyles: true,
@@ -141,9 +147,6 @@
 				.on('focus', function(e) {
 					this.onFocus(e)
 				}.bind(this))
-				.on('blur', function(e) {
-					this.onBlur(e)
-				}.bind(this))
 				.on('keydown', function(e) {
 					this.onKeydown(e)
 				}.bind(this))
@@ -152,12 +155,10 @@
 				}.bind(this));
 
 			$('body').on('click', function(e) {
-				if (this._$wrap.has($(e.target))) {
-					this._state.focused = true;
-					this._$list.show();
+				if($(e.target).hasClass('aircomplete') || $(e.target).parents('.aircomplete').size()) {
+					this.onFocus(e);
 				} else {
-					this._state.focused = false;
-					this._$list.hide();
+					this.onBlur(e);
 				}
 			}.bind(this));
 
@@ -185,11 +186,19 @@
 		},
 
 		onBlur: function(e) {
+			this.options.onBlur();
 
+			this._state.focused = false;
+			this._state.current = 0;
+			this._state.count = 0;
+			this._$list.html("");
 		},
 
 		onKeydown: function(e) {
-			switch (e.which) {
+			switch(e.which) {
+				case 9: // tab
+					this.onBlur(e);
+					break;
 				case 13: // enter
 					e.preventDefault();
 					break;
@@ -247,13 +256,18 @@
 					const term = $(this.element).val();
 					if (term.length >= this.options.minSearchStringLength) {
 						this.search(term);
+					} else {
+						this._state.expanded = false;
+						this._state.count = false;
+						this._state.current = 0;
+						this._$list.html("");
 					}
 			}
 		},
 
 		onClick: function(e) {
 			if($(e.target).closest('li.aircomplete-list-item')) {
-				this._state.current = $(e.target).closest('li.aircomplete-list-item').index()+1;
+				this._state.current = $(e.target).closest('li.aircomplete-list-item').index() + 1;
 
 				this._$list.find("li").removeClass("aircomplete-selected");
 				this._$list.find("li:nth(" + (this._state.current - 1) + ")").addClass("aircomplete-selected");
@@ -336,6 +350,7 @@
 				this._state.expanded = false;
 				this._state.count = false;
 				this._state.current = 0;
+				this._$list.html("");
 			}
 
 			this._results = results;
