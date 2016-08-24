@@ -155,7 +155,7 @@
 				}.bind(this));
 
 			$('body').on('click', function(e) {
-				if($(e.target).hasClass('aircomplete') || $(e.target).parents('.aircomplete').size()) {
+				if ($(e.target).hasClass('aircomplete') || $(e.target).parents('.aircomplete').size()) {
 					this.onFocus(e);
 				} else {
 					this.onBlur(e);
@@ -195,7 +195,7 @@
 		},
 
 		onKeydown: function(e) {
-			switch(e.which) {
+			switch (e.which) {
 				case 9: // tab
 					this.onBlur(e);
 					break;
