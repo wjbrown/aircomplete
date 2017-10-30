@@ -324,6 +324,8 @@
         updateResults: function(results, term) {
             if (this.options.debug) console.log('aircomplete.updateResults()');
 
+            this._results = results;
+
             if (results.length) {
                 this._state.expanded = true;
                 this._state.count = results.length;
