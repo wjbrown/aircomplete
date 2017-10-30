@@ -26,9 +26,9 @@
 	var pluginName = "aircomplete",
 		defaults = {
 			// how elements are matched against search text
+            // only applies to non-ajax setup
 			match: function(data, term) {
 				return data.toLowerCase().indexOf(term.toLowerCase()) > -1;
-				//return true;
 			},
 			// how matches are returned for the dropdown list
 			template: function(data, term) {
@@ -38,16 +38,12 @@
 					text = text.replace(new RegExp('(' + terms[i] + ')', 'igm'), "<strong>$1</strong>")
 				}
 				return text;
-				// return "<div><img src='" + element.img + "' style='width:50px;' />" + element.name + "</div>";
 			},
 			// callback for user pressing eter on a selection
 			onEnter: function(element) {
 				return;
 			},
 			onClick: function(element) {
-				return;
-			},
-			onBlur: function() {
 				return;
 			},
 			// should the list inherit styles from the input?
@@ -61,7 +57,9 @@
 				// url: 'http://yoursitehere.com/response.json',
 				dataType: 'json', // or jsonp
 				method  : 'GET'
-			}
+            },
+            // debug for console output
+            debug: false
 		};
 
 	// The actual plugin constructor
@@ -101,7 +99,7 @@
 	Plugin.prototype = {
 
 		init: function() {
-			// call them like so: this.yourOtherFunction(this.element, this.options).
+            if (this.options.debug) console.log('aircomplete.init()');
 
 			// get the width/height of the input element
 			this._inputw = $(this.element).outerWidth();
@@ -136,6 +134,7 @@
 
 			this._$wrap.append($list);
 
+            // keep ref to the ul
 			this._$list = this._$wrap.find("ul:first");
 
 			$(this._$list)
@@ -144,57 +143,49 @@
 				}.bind(this));
 
 			$(this.element)
-				.on('focus', function(e) {
-					this.onFocus(e)
-				}.bind(this))
-				.on('keydown', function(e) {
-					this.onKeydown(e)
-				}.bind(this))
-				.on('keyup', function(e) {
-					this.onKeyup(e)
-				}.bind(this));
+                .on('focus',   function(e) { this.onFocus(e)   }.bind(this))
+                .on('keydown', function(e) { this.onKeydown(e) }.bind(this))
+                .on('keyup',   function(e) { this.onKeyup(e)   }.bind(this));
 
-			$('body').on('click', function(e) {
-				if ($(e.target).hasClass('aircomplete') || $(e.target).parents('.aircomplete').size()) {
-					this.onFocus(e);
-				} else {
+            $('body')
+                .on('click', function(e) {
+                    if (!$(e.target).hasClass('aircomplete') && !$(e.target).parents('.aircomplete').size()) {
 					this.onBlur(e);
 				}
 			}.bind(this));
 
+            $(window)
+                .on('resize',  function(e) { this.onResize(e)  }.bind(this));
 		},
 
-		onFocus: function(e) {
-			if ($.isFunction(this.options.data)) {
-				var data = this.options.data();
-			} else {
-				var data = this.options.data;
-			}
-			if (typeof data == 'string') {
-				$.ajax({
-					url: data,
-					success: function(result) {
-						data = result;
+        onResize: function(e) {
+            if (this.options.debug) console.log('aircomplete.onResize()');
+            
+            // get the width/height of the input element
+            this._inputw = this._$wrap.parent().width();
+            this._inputh = this._$wrap.parent().height();
+            this._$wrap
+                .width(this._inputw)
+                .height(this._inputh);
+            this._$list
+                .width(this._inputw);
 					},
-					dataType: 'json',
-					async: false
-				});
-			}
 
+        onFocus: function(e) {
+            if (this.options.debug) console.log('aircomplete.onFocus()');
 			this._state.focused = true;
 			this._$list.show();
 		},
 
 		onBlur: function(e) {
-			this.options.onBlur();
-
+            if (this.options.debug) console.log('aircomplete.onBlur()');
 			this._state.focused = false;
-			this._state.current = 0;
-			this._state.count = 0;
-			this._$list.html("");
+            this._$list.hide();
 		},
 
 		onKeydown: function(e) {
+            if (this.options.debug) console.log('aircomplete.onKeydown()');
+
 			switch (e.which) {
 				case 9: // tab
 					this.onBlur(e);
@@ -206,7 +197,6 @@
 					e.preventDefault();
 					if (this._state.expanded) {
 						this._state.current = Math.max(this._state.current - 1, 0);
-
 						this._$list.find("li").removeClass("aircomplete-selected");
 						if (this._state.current) {
 							this._$list.find("li:nth(" + (this._state.current - 1) + ")").addClass("aircomplete-selected");
@@ -217,7 +207,6 @@
 					e.preventDefault();
 					if (this._state.expanded) {
 						this._state.current = Math.min(this._state.current + 1, this._state.count);
-
 						this._$list.find("li").removeClass("aircomplete-selected");
 						this._$list.find("li:nth(" + (this._state.current - 1) + ")").addClass("aircomplete-selected");
 					}
@@ -226,6 +215,8 @@
 		},
 
 		onKeyup: function(e) {
+            if (this.options.debug) console.log('aircomplete.onKeyup()');
+            
 			e.preventDefault();
 
 			switch (e.which) {
@@ -234,11 +225,9 @@
 					break;
 				case 13: // enter
 					if (this._state.current) {
-
 						var proceed = this.options.onEnter(
 							this._results[this._state.current - 1]
 						);
-
 						if (proceed) {
 							$(this.element).val(
 								this._$list.find("li:nth(" + (this._state.current - 1) + ")").text()
@@ -250,7 +239,6 @@
 					}
 					break;
 				default: // assumed to be input
-					//this._$list.html("");
 					this._state.current = 0;
 					this._state.count = 0;
 					const term = $(this.element).val();
@@ -266,18 +254,17 @@
 		},
 
 		onClick: function(e) {
+            if (this.options.debug) console.log('aircomplete.onClick()');
+
 			if($(e.target).closest('li.aircomplete-list-item')) {
 				this._state.current = $(e.target).closest('li.aircomplete-list-item').index() + 1;
-
 				this._$list.find("li").removeClass("aircomplete-selected");
 				this._$list.find("li:nth(" + (this._state.current - 1) + ")").addClass("aircomplete-selected");
 			}
-
 			if (this._state.current) {
 				var proceed = this.options.onClick(
 					this._results[this._state.current - 1]
 				);
-
 				if (proceed) {
 					$(this.element).val(
 						this._$list.find("li:nth(" + (this._state.current - 1) + ")").text()
@@ -286,12 +273,14 @@
 					this._state.current = 0;
 					this._state.count = 0;
 				}
-			} else {
-				console.log(e.target);
 			}
+
+            $(this.element).focus();
 		},
 
 		search: function(term) {
+            if (this.options.debug) console.log('aircomplete.search()');
+
 			// is it an ajax request?
 			if (this.options.ajaxOptions.url) {
 				var ajaxOptions = $.extend({},
@@ -308,13 +297,19 @@
 
 				this._ajaxRequest = $.ajax(ajaxOptions);
 				this._ajaxRequest.then(function(results) {
-					this.options.data = results;
-					this.updateResults(results, term);
+                    this.updateResults(results.data, term);
 				}.bind(this));
 				// is it a function?
-			} else if ($.isFunction(this.options.data)) {
+            }
+            // else on-page data set 
+            else {
+                // assign data, check to see if its a fxn
+                var data = $.isFunction(this.options.data) ? this.options.data() : this.options.data;
+
+                // if its an object, get the array part
+                data = $.isPlainObject(data) ? data.data : data;
+
 				var results = [];
-				var data = this.options.data();
 
 				for (var i in data) {
 					if (this.options.match(data[i], term)) {
@@ -323,21 +318,12 @@
 				}
 
 				this.updateResults(results, term);
-				// default - static json
-			} else {
-				var results = [];
-
-				for (var i in this.options.data) {
-					if (this.options.match(this.options.data[i], term)) {
-						results.push(this.options.data[i]);
-					}
-				}
-
-				this.updateResults(results, term);
 			}
 		},
 
 		updateResults: function(results, term) {
+            if (this.options.debug) console.log('aircomplete.updateResults()');
+
 			if (results.length) {
 				this._state.expanded = true;
 				this._state.count = results.length;
@@ -352,8 +338,6 @@
 				this._state.current = 0;
 				this._$list.html("");
 			}
-
-			this._results = results;
 		}
 
 	};
