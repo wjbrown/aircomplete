@@ -3,7 +3,6 @@
     display: table;
     clear: both;
 }
-
 .aircomplete {
     position: relative;
     z-index: 1000;

@@ -59,7 +59,7 @@
                 method  : 'GET'
             },
             // debug for console output
-            debug: false
+            debug: true
         };
 
     // The actual plugin constructor
@@ -141,13 +141,12 @@
                 .on('click', function(e) {
                     this.onClick(e)
                 }.bind(this));
-
             $(this.element)
                 .on('focus',   function(e) { this.onFocus(e)   }.bind(this))
                 .on('keydown', function(e) { this.onKeydown(e) }.bind(this))
                 .on('keyup',   function(e) { this.onKeyup(e)   }.bind(this));
 
-            $('body')
+            $(document)
                 .on('click', function(e) {
                     if (!$(e.target).hasClass('aircomplete') && !$(e.target).parents('.aircomplete').size()) {
                     this.onBlur(e);
