@@ -77,7 +77,6 @@
         this._name = pluginName;
 
         this._state = {
-            focused : false,
             expanded: false,
             count   : 0,
             current : 0
@@ -99,8 +98,6 @@
     Plugin.prototype = {
 
         init: function() {
-            if (this.options.debug) console.log('aircomplete.init()');
-
             // get the width/height of the input element
             this._inputw = $(this.element).outerWidth();
             this._inputh = $(this.element).outerHeight();
@@ -141,6 +138,7 @@
                 .on('click', function(e) {
                     this.onClick(e)
                 }.bind(this));
+
             $(this.element)
                 .on('focus',   function(e) { this.onFocus(e)   }.bind(this))
                 .on('keydown', function(e) { this.onKeydown(e) }.bind(this))
@@ -172,13 +170,11 @@
 
         onFocus: function(e) {
             if (this.options.debug) console.log('aircomplete.onFocus()');
-            this._state.focused = true;
             this._$list.show();
         },
 
         onBlur: function(e) {
             if (this.options.debug) console.log('aircomplete.onBlur()');
-            this._state.focused = false;
             this._$list.hide();
         },
 
@@ -253,8 +249,6 @@
         },
 
         onClick: function(e) {
-            if (this.options.debug) console.log('aircomplete.onClick()');
-
             if($(e.target).closest('li.aircomplete-list-item')) {
                 this._state.current = $(e.target).closest('li.aircomplete-list-item').index() + 1;
                 this._$list.find("li").removeClass("aircomplete-selected");
@@ -277,68 +271,101 @@
             $(this.element).focus();
         },
 
+        // generic search that delegates down to a more specific search
         search: function(term) {
-            if (this.options.debug) console.log('aircomplete.search()');
-
             // is it an ajax request?
             if (this.options.ajaxOptions.url) {
-                var ajaxOptions = $.extend({},
-                    this.options.ajaxOptions, {
-                        url: this.options.ajaxOptions.url.replace(
-                            '{{term}}', encodeURIComponent(term)
-                        )
-                    }
-                );
-
-                if (this._ajaxRequest) {
-                    this._ajaxRequest.abort();
-                }
-
-                this._ajaxRequest = $.ajax(ajaxOptions);
-                this._ajaxRequest.then(function(results) {
-                    this.updateResults(results.data, term);
-                }.bind(this));
-                // is it a function?
+                this.ajaxSearch(term);
             }
             // else on-page data set 
             else {
-                // assign data, check to see if its a fxn
-                var data = $.isFunction(this.options.data) ? this.options.data() : this.options.data;
-
-                // if its an object, get the array part
-                data = $.isPlainObject(data) ? data.data : data;
-
-                var results = [];
-
-                for (var i in data) {
-                    if (this.options.match(data[i], term)) {
-                        results.push(data[i]);
-                    }
-                }
-
-                this.updateResults(results, term);
+                this.localSearch(term);
             }
         },
 
-        updateResults: function(results, term) {
-            if (this.options.debug) console.log('aircomplete.updateResults()');
+        // for search via ajax
+        ajaxSearch:  function(term) {
+            var ajaxOptions = $.extend({},
+                this.options.ajaxOptions, {
+                    url: this.options.ajaxOptions.url.replace(
+                        '{{term}}', encodeURIComponent(term)
+                    )
+                }
+            );
 
+            // if we already have an outstanding ajax request, abort it
+            if (this._ajaxRequest) {
+                this._ajaxRequest.abort();
+            }
+
+            this._ajaxRequest = $.ajax(ajaxOptions);
+            this._ajaxRequest.then(function(results) {
+                this.populateList(results.data, term);
+            }.bind(this));
+        },
+
+        // for searching a local dataset / array
+        localSearch: function(term) {
+            // assign data, check to see if its a fxn
+            var data = $.isFunction(this.options.data) ? this.options.data() : this.options.data;
+
+            // if its an object, get the array part
+            data = $.isPlainObject(data) ? data.data : data;
+
+            var results = [];
+
+            for (var i in data) {
+                if (this.options.match(data[i], term)) {
+                    results.push(data[i]);
+                }
+            }
+
+            this.populateList(results, term);
+        },
+
+        selectListItem: function() {
+
+        },
+
+        // shows/expands the autocomplete list
+        showList: function() {
+            this._state.expanded = true;
+            this._$list.show();
+        },
+
+        // hides/contracts the autocomplete list
+        hideList: function() {
+            this._state.expanded = false;
+            this._$list.hide();
+        },
+
+        // populates the autocomplete list with the items provided
+        populateList: function(results, term) {
             this._results = results;
-
+            // if there are results
             if (results.length) {
-                this._state.expanded = true;
                 this._state.count = results.length;
                 var items = "";
                 for (var i = 0; i < results.length; i++) {
                     items += "<li class='aircomplete-list-item'>" + this.options.template(results[i], term) + "</li>";
                 }
                 this._$list.html(items);
-            } else {
-                this._state.expanded = false;
-                this._state.count = false;
-                this._state.current = 0;
-                this._$list.html("");
+                this.showList();
+            } 
+            // otherwise
+            else {
+                this.emptyList();
             }
+        },
+
+        // empties the autocomplete list, resetting the plugin state
+        emptyList: function() {
+            this._state = {
+                count   : 0,
+                current : 0
+            };
+            this._$list.html("");
+            this.hideList();
         }
 
     };
