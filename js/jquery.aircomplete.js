@@ -89,9 +89,6 @@
 
         this.init();
 
-        this.clownfart = function() {
-            alert('balloons');
-        };
     }
 
     Plugin.prototype = {
