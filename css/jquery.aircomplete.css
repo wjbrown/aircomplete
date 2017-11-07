@@ -33,14 +33,14 @@
     filter: grayscale(100%);
     opacity: .4;
 }
-.aircomplete-selected, .aircomplete-list-item:hover {
+.aircomplete-focused, .aircomplete-list-item:hover {
     background-color: white;
     color: #666;
 }
-.aircomplete-selected small, .aircomplete-list-item:hover small {
+.aircomplete-focused small, .aircomplete-list-item:hover small {
     color: #999;
 }
-.aircomplete-selected img, .aircomplete-list-item:hover img {
+.aircomplete-focused img, .aircomplete-list-item:hover img {
     filter: grayscale(0%);
     opacity: .6;
 }

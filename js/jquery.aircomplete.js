@@ -23,58 +23,53 @@
     // regularly referenced in your plugin).
 
     // Create the defaults once
-    var pluginName = "aircomplete",
-        defaults = {
-            // how elements are matched against search text
-            // only applies to non-ajax setup
-            match: function(data, term) {
-                return data.toLowerCase().indexOf(term.toLowerCase()) > -1;
-            },
-            // how matches are returned for the dropdown list
-            template: function(data, term) {
-                var text = data;
-                var terms = term.trim().split(' ');
-                for (var i = 0; i < terms.length; i++) {
-                    text = text.replace(new RegExp('(' + terms[i] + ')', 'igm'), "<strong>$1</strong>")
-                }
-                return text;
-            },
-            // callback for user pressing eter on a selection
-            onEnter: function(element) {
-                return;
-            },
-            onClick: function(element) {
-                return;
-            },
-            // should the list inherit styles from the input?
-            inheritStyles: true,
-            // minimum size of the search text before we start searching
-            minSearchStringLength: 3,
-            // maybe data is an object, maybe data is a static file
-            data: [], // [] | '/path/to/static/file.json'
-            // maybe we need to ajax in results
-            ajaxOptions: {
-                // url: 'http://yoursitehere.com/response.json',
-                dataType: 'json', // or jsonp
-                method  : 'GET'
-            },
-            // debug for console output
-            debug: true
-        };
+    var pluginName = "aircomplete";
+
+    var defaults = {
+        // how elements are matched against search text
+        // only applies to non-ajax setup
+        match: function(dataRow, searchTerm) {
+            return dataRow.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1;
+        },
+        // how matches are formatted for the dropdown list
+        template: function(dataRow, searchTerm) {
+            var html = dataRow;
+            var searchTerms = searchTerm.trim().split(" ");
+            for (var i = 0; i < searchTerms.length; i++) {
+                html = html.replace(new RegExp("(" + searchTerms[i] + ")", "igm"), "<strong>$1</strong>");
+            }
+            return html;
+        },
+        // defines what should happen if a user selects an item from the list
+        // by default, triggered by both click and enter events
+        // the value returned from this function will get set as the val() of the input
+        // return false to leave the input val() unchanged
+        onSelect: function(dataRow) {
+            return dataRow.name;
+        },
+        // should the list inherit styles from the input?
+        inheritStyles: true,
+        // minimum size of the search text before we start searching
+        minSearchStringLength: 3,
+        // maybe data is an object, maybe data is a static file
+        data: [], // [] | "/path/to/static/file.json"
+        // maybe we need to ajax in results
+        ajaxOptions: {
+            // url: "http://yoursitehere.com/response.json",
+            dataType: "json", // or jsonp
+            method  : "GET"
+        },
+        // debug for console output
+        // 1 -events only
+        // 2  all function calls
+        debug: 0
+    };
 
     // The actual plugin constructor
     function Plugin(element, options) {
         this.element = element;
 
-        // jQuery has an extend method that merges the
-        // contents of two or more objects, storing the
-        // result in the first object. The first object
-        // is generally empty because we don't want to alter
-        // the default options for future instances of the plugin
         this.options = $.extend({}, defaults, options);
-
-        this._defaults = defaults;
-        this._name = pluginName;
 
         this._state = {
             expanded: false,
@@ -93,6 +88,10 @@
         this._results;
 
         this.init();
+
+        this.clownfart = function() {
+            alert('balloons');
+        };
     }
 
     Plugin.prototype = {
@@ -121,7 +120,7 @@
             // create dropdown list
             var $list = $("<ul class='aircomplete-list'></ul>");
 
-            if (this.options['inheritStyles']) {
+            if (this.options.inheritStyles) {
                 $list.css({
                     width: this._inputw,
                     fontFamily: $(this.element).css("font-family"),
@@ -136,13 +135,13 @@
 
             $(this._$list)
                 .on('click', function(e) {
-                    this.onClick(e)
+                    this.onClick(e);
                 }.bind(this));
 
             $(this.element)
-                .on('focus',   function(e) { this.onFocus(e)   }.bind(this))
-                .on('keydown', function(e) { this.onKeydown(e) }.bind(this))
-                .on('keyup',   function(e) { this.onKeyup(e)   }.bind(this));
+                .on('focus',   function(e) { this.onFocus(e);   }.bind(this))
+                .on('keydown', function(e) { this.onKeydown(e); }.bind(this))
+                .on('keyup',   function(e) { this.onKeyup(e);   }.bind(this));
 
             $(document)
                 .on('click', function(e) {
@@ -152,12 +151,11 @@
             }.bind(this));
 
             $(window)
-                .on('resize',  function(e) { this.onResize(e)  }.bind(this));
+                .on('resize',  function(e) { this.onResize(e);  }.bind(this));
         },
 
         onResize: function(e) {
-            if (this.options.debug) console.log('aircomplete.onResize()');
-            
+            this.debug('aircomplete.onResize()');
             // get the width/height of the input element
             this._inputw = this._$wrap.parent().width();
             // this._inputh = this._$wrap.parent().height();
@@ -169,18 +167,17 @@
         },
 
         onFocus: function(e) {
-            if (this.options.debug) console.log('aircomplete.onFocus()');
+            this.debug('aircomplete.onFocus()');
             this._$list.show();
         },
 
         onBlur: function(e) {
-            if (this.options.debug) console.log('aircomplete.onBlur()');
+            this.debug('aircomplete.onBlur()');
             this._$list.hide();
         },
 
         onKeydown: function(e) {
-            if (this.options.debug) console.log('aircomplete.onKeydown()');
-
+            this.debug('aircomplete.onKeydown()');
             switch (e.which) {
                 case 9: // tab
                     this.onBlur(e);
@@ -190,89 +187,46 @@
                     break;
                 case 38: // up
                     e.preventDefault();
-                    if (this._state.expanded) {
-                        this._state.current = Math.max(this._state.current - 1, 0);
-                        this._$list.find("li").removeClass("aircomplete-selected");
-                        if (this._state.current) {
-                            this._$list.find("li:nth(" + (this._state.current - 1) + ")").addClass("aircomplete-selected");
-                        }
-                    }
+                    this.focusPrevListItem();
                     break;
                 case 40: // down
                     e.preventDefault();
-                    if (this._state.expanded) {
-                        this._state.current = Math.min(this._state.current + 1, this._state.count);
-                        this._$list.find("li").removeClass("aircomplete-selected");
-                        this._$list.find("li:nth(" + (this._state.current - 1) + ")").addClass("aircomplete-selected");
-                    }
+                    this.focusNextListItem();
                     break;
             }
         },
 
         onKeyup: function(e) {
-            if (this.options.debug) console.log('aircomplete.onKeyup()');
-            
+            this.debug('aircomplete.onKeyup()');
             e.preventDefault();
-
             switch (e.which) {
                 case 38: // up & down arrows get ignored
                 case 40:
                     break;
                 case 13: // enter
-                    if (this._state.current) {
-                        var proceed = this.options.onEnter(
-                            this._results[this._state.current - 1]
-                        );
-                        if (proceed) {
-                            $(this.element).val(
-                                this._$list.find("li:nth(" + (this._state.current - 1) + ")").text()
-                            );
-                            this._$list.html("");
-                            this._state.current = 0;
-                            this._state.count = 0;
-                        }
-                    }
+                    this.selectListItem();
                     break;
                 default: // assumed to be input
-                    this._state.current = 0;
-                    this._state.count = 0;
-                    const term = $(this.element).val();
+                    var term = $(this.element).val();
                     if (term.length >= this.options.minSearchStringLength) {
                         this.search(term);
                     } else {
-                        this._state.expanded = false;
-                        this._state.count = false;
-                        this._state.current = 0;
-                        this._$list.html("");
+                        this.emptyList();
                     }
             }
         },
 
         onClick: function(e) {
+            this.debug('aircomplete.onClick()');
             if($(e.target).closest('li.aircomplete-list-item')) {
                 this._state.current = $(e.target).closest('li.aircomplete-list-item').index() + 1;
-                this._$list.find("li").removeClass("aircomplete-selected");
-                this._$list.find("li:nth(" + (this._state.current - 1) + ")").addClass("aircomplete-selected");
             }
-            if (this._state.current) {
-                var proceed = this.options.onClick(
-                    this._results[this._state.current - 1]
-                );
-                if (proceed) {
-                    $(this.element).val(
-                        this._$list.find("li:nth(" + (this._state.current - 1) + ")").text()
-                    );
-                    this._$list.html("");
-                    this._state.current = 0;
-                    this._state.count = 0;
-                }
-            }
-
-            $(this.element).focus();
+            this.selectListItem();
         },
 
         // generic search that delegates down to a more specific search
         search: function(term) {
+            this.debug('aircomplete.search()');
             // is it an ajax request?
             if (this.options.ajaxOptions.url) {
                 this.ajaxSearch(term);
@@ -285,6 +239,7 @@
 
         // for search via ajax
         ajaxSearch:  function(term) {
+            this.debug('aircomplete.ajaxSearch()');
             var ajaxOptions = $.extend({},
                 this.options.ajaxOptions, {
                     url: this.options.ajaxOptions.url.replace(
@@ -306,6 +261,7 @@
 
         // for searching a local dataset / array
         localSearch: function(term) {
+            this.debug('aircomplete.localSearch()');
             // assign data, check to see if its a fxn
             var data = $.isFunction(this.options.data) ? this.options.data() : this.options.data;
 
@@ -323,24 +279,70 @@
             this.populateList(results, term);
         },
 
-        selectListItem: function() {
+        // focuses the next item in the list
+        focusNextListItem: function() {
+            this.debug('aircomplete.focusNextListItem()');
+            if (this._state.expanded) {
+                this._state.current = (this._state.current + 1) % (this._state.count + 1);
+                this.focusListItem(this._state.current -1);
+            }
+        },
 
+        // focuses the previous item in the list
+        focusPrevListItem: function() {
+            this.debug('aircomplete.focusPrevListItem()');
+            if (this._state.expanded) {
+                this._state.current = this._state.current === 0 ? this._state.count : this._state.current-1;
+                this.focusListItem(this._state.current - 1);
+            }
+        },
+
+        // highlights the currently focused item in the list
+        focusListItem: function(index) {
+            this.debug('aircomplete.focusListItem()');
+            if (this._state.expanded) {
+                this._$list.find("li").removeClass("aircomplete-focused");
+                this._$list.find("li:nth(" + index + ")").addClass("aircomplete-focused");
+            }
+        },
+
+        // 'chooses' the item from the list
+        selectListItem: function() {
+            this.debug('aircomplete.selectListItem()');
+            if (this._state.current) {
+                var value = this.options.onSelect(
+                    this._results[this._state.current - 1]
+                );
+
+                if (value !== false) {
+                    this.setInputValue(value);
+                    this.emptyList();
+                    $(this.element).focus();
+                }
+            }
+        },
+
+        setInputValue: function(value) {
+            $(this.element).val(value);
         },
 
         // shows/expands the autocomplete list
         showList: function() {
+            this.debug('aircomplete.showList()');
             this._state.expanded = true;
             this._$list.show();
         },
 
         // hides/contracts the autocomplete list
         hideList: function() {
+            this.debug('aircomplete.hideList()');
             this._state.expanded = false;
             this._$list.hide();
         },
 
         // populates the autocomplete list with the items provided
         populateList: function(results, term) {
+            this.debug('aircomplete.populateList()');
             this._results = results;
             // if there are results
             if (results.length) {
@@ -360,14 +362,24 @@
 
         // empties the autocomplete list, resetting the plugin state
         emptyList: function() {
+            this.debug('aircomplete.emptyList()');
             this._state = {
                 count   : 0,
                 current : 0
             };
             this._$list.html("");
             this.hideList();
-        }
+        },
 
+        // if debug 1, outputs event calls
+        // if debug 2, outputs all function calls
+        debug: function(str) {
+            if (this.options.debug) {
+                if (this.options.debug == 2 || str.indexOf('aircomplete.on') !== -1) {
+                    console.log(str);
+                }
+            }
+        }
     };
 
     // A really lightweight plugin wrapper around the constructor,
