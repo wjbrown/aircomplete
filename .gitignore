@@ -191,3 +191,8 @@ fabric.properties
 # modules.xml
 # .idea/misc.xml
 # *.ipr
+
+# from jquery boilerplate
+npm-debug.log
+node_modules
+bower_components
