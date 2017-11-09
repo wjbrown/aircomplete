@@ -59,6 +59,9 @@
             dataType: "json", // or jsonp
             method  : "GET"
         },
+        // given a dataset, what is the path to the array?
+        // useful when some APIs return {results: []} or {data: []}
+        dataKey: '',
         // debug for console output
         // 1 -events only
         // 2  all function calls
@@ -88,7 +91,6 @@
         this._results;
 
         this.init();
-
     }
 
     Plugin.prototype = {
@@ -206,9 +208,9 @@
                     this.selectListItem();
                     break;
                 default: // assumed to be input
-                    var term = $(this.el).val();
-                    if (term.length >= this.options.minSearchStringLength) {
-                        this._search(term);
+                    var searchTerm = $(this.el).val();
+                    if (searchTerm.length >= this.options.minSearchStringLength) {
+                        this._search(searchTerm);
                     } else {
                         this.emptyList();
                     }
@@ -224,25 +226,25 @@
         },
 
         // generic search that delegates down to a more specific search
-        _search: function(term) {
+        _search: function(searchTerm) {
             this._debug('aircomplete.search()');
             // is it an ajax request?
             if (this.options.ajaxOptions.url) {
-                this._ajaxSearch(term);
+                this._ajaxSearch(searchTerm);
             }
             // else on-page data set 
             else {
-                this._localSearch(term);
+                this._localSearch(searchTerm);
             }
         },
 
         // for search via ajax
-        _ajaxSearch:  function(term) {
+        _ajaxSearch:  function(searchTerm) {
             this._debug('aircomplete.ajaxSearch()');
             var ajaxOptions = $.extend({},
                 this.options.ajaxOptions, {
                     url: this.options.ajaxOptions.url.replace(
-                        '{{term}}', encodeURIComponent(term)
+                        '{{searchTerm}}', encodeURIComponent(searchTerm)
                     )
                 }
             );
@@ -253,33 +255,53 @@
             }
 
             this._ajaxRequest = $.ajax(ajaxOptions);
-            this._ajaxRequest.then(function(results) {
-                this._populateList(results.data, term);
+            this._ajaxRequest.then(function(response) {
+                // normalize the response data to a form we can work with
+                var data = this._normalizeData(response);
+                // filter out unnecessary elements from the dataset
+                var results = this._filterResults(data,searchTerm);
+                // populate the autocomplete dropdown list
+                this._populateList(results, searchTerm);
             }.bind(this));
         },
 
         // for searching a local dataset / array
-        _localSearch: function(term) {
+        _localSearch: function(searchTerm) {
             this._debug('aircomplete.localSearch()');
             // assign data, check to see if its a fxn
-            var data = $.isFunction(this.options.data) ? this.options.data() : this.options.data;
+            var rawData = $.isFunction(this.options.data) ? this.options.data() : this.options.data;
+            // normalize the rawData to a form we can work with
+            var data = this._normalizeData(rawData);
+            // filter out unnecessary elements from the dataset
+            var results = this._filterResults(data,searchTerm);
+            // populate the autocomplete dropdown list
+            this._populateList(results, searchTerm);
+        },
+        
+        _normalizeData: function(rawData) {
+            var data;
+            if (this.options.dataKey !== '' && rawData.hasOwnProperty(this.options.dataKey)) {
+                data = rawData[this.options.dataKey];
+            }
+            else {
+                data = rawData;
+            }
+            return data;
+        },
 
-            // if its an object, get the array part
-            data = $.isPlainObject(data) ? data.data : data;
-
+        // given a dataset and a searchTerm, returns dataset with unmatched rows filtered out
+        _filterResults: function(dataRows, searchTerm) {
             var results = [];
-
-            for (var i in data) {
-                if (this.options.match(data[i], term)) {
-                    results.push(data[i]);
+            for (var i in dataRows) {
+                if (this.options.match(dataRows[i], searchTerm)) {
+                    results.push(dataRows[i]);
                 }
             }
-
-            this._populateList(results, term);
+            return results;
         },
 
         // populates the autocomplete list with the items provided
-        _populateList: function(results, term) {
+        _populateList: function(results, searchTerm) {
             this._debug('aircomplete._populateList()');
             this._results = results;
             // if there are results
@@ -287,7 +309,7 @@
                 this._state.count = results.length;
                 var items = "";
                 for (var i = 0; i < results.length; i++) {
-                    items += "<li class='aircomplete-list-item'>" + this.options.template(results[i], term) + "</li>";
+                    items += "<li class='aircomplete-list-item'>" + this.options.template(results[i], searchTerm) + "</li>";
                 }
                 this._$list.html(items);
                 this.showList();
