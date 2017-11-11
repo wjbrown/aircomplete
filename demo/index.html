@@ -62,6 +62,7 @@
                         // the matching/filtering is done by the php, so pass everything through
                         return true;
                     },
+                    searchDelay: 500,
                     minSearchStringLength : 1 // show results after a single character is entered
                 });
             });
@@ -94,6 +95,7 @@
                     match: function (dataRow, searchTerm) {
                         return dataRow.name.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1;
                     },
+                    searchDelay: 500,
                     minSearchStringLength : 1 // show results after a single character is entered
                 });
             });

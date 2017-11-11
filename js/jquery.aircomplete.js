@@ -62,6 +62,11 @@
         // given a dataset, what is the path to the array?
         // useful when some APIs return {results: []} or {data: []}
         dataKey: '',
+        // how many seconds should pass after a keystroke before we 
+        // repopulate the list
+        searchDelay: 0,
+        // should the plugin cache ajax requests?
+        cache: true,
         // debug for console output
         // 1 -events only
         // 2  all function calls
@@ -89,6 +94,10 @@
         this._ajaxRequest;
 
         this._results;
+
+        this._debounceTimeout;
+
+        this._cache = {};
 
         this.init();
     }
@@ -210,7 +219,9 @@
                 default: // assumed to be input
                     var searchTerm = $(this.el).val();
                     if (searchTerm.length >= this.options.minSearchStringLength) {
-                        this._search(searchTerm);
+                        this._debounce(function() {
+                            this._search(searchTerm);
+                        }.bind(this), this.options.searchDelay);
                     } else {
                         this.emptyList();
                     }
@@ -223,6 +234,15 @@
                 this._state.current = $(e.target).closest('li.aircomplete-list-item').index() + 1;
             }
             this.selectListItem();
+        },
+
+        _debounce: function(func, wait) {
+
+            if (this._debounceTimeout) {
+                clearTimeout(this._debounceTimeout);
+            }
+            
+            this._debounceTimeout = setTimeout(func, wait);
         },
 
         // generic search that delegates down to a more specific search
@@ -241,11 +261,25 @@
         // for search via ajax
         _ajaxSearch:  function(searchTerm) {
             this._debug('aircomplete.ajaxSearch()');
+
+            var requestUrl = this.options.ajaxOptions.url.replace(
+                '{{searchTerm}}', encodeURIComponent(searchTerm)
+            );
+
+            // if caching is enabled, check it
+            if (this.options.cache) {
+                // if we have a cache entry, set the cached request 
+                // response to the current data set and run a local search
+                if (this._cache.hasOwnProperty(requestUrl)) {
+                    this.options.data = this._cache[requestUrl];
+                    return this._localSearch(searchTerm);
+                }
+            }
+
+            // update our ajaxOptions with the request URL
             var ajaxOptions = $.extend({},
                 this.options.ajaxOptions, {
-                    url: this.options.ajaxOptions.url.replace(
-                        '{{searchTerm}}', encodeURIComponent(searchTerm)
-                    )
+                    url: requestUrl
                 }
             );
 
@@ -256,6 +290,10 @@
 
             this._ajaxRequest = $.ajax(ajaxOptions);
             this._ajaxRequest.then(function(response) {
+                // if cache is enabled, store response in cache
+                if (this.options.cache) {
+                    this._cache[requestUrl] = response;
+                }
                 // normalize the response data to a form we can work with
                 var data = this._normalizeData(response);
                 // filter out unnecessary elements from the dataset
