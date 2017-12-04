@@ -33,14 +33,19 @@
     filter: grayscale(100%);
     opacity: .4;
 }
-.aircomplete-focused, .aircomplete-list-item:hover {
+.aircomplete-selected {
     background-color: white;
+    background-color: #f1f1f1;
     color: #666;
 }
-.aircomplete-focused small, .aircomplete-list-item:hover small {
+.aircomplete-focused, .aircomplete-list-item:hover {
+    background-color: #f1f1f1;
+    color: #666;
+}
+.aircomplete-focused small, .aircomplete-selected small, .aircomplete-list-item:hover small {
     color: #999;
 }
-.aircomplete-focused img, .aircomplete-list-item:hover img {
+.aircomplete-focused img, .aircomplete-selected img, .aircomplete-list-item:hover img {
     filter: grayscale(0%);
     opacity: .6;
 }

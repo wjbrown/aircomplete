@@ -62,7 +62,7 @@
         // given a dataset, what is the path to the array?
         // useful when some APIs return {results: []} or {data: []}
         dataKey: '',
-        // how many seconds should pass after a keystroke before we 
+        // how many milliseconds should pass after a keystroke before we 
         // repopulate the list
         searchDelay: 200,
         // should the plugin cache ajax requests?

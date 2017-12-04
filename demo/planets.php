@@ -1,7 +1,5 @@
 <?php
 
-// sleep(1);
-
 $term = $_GET['searchTerm'];
 
 $planets = [
@@ -30,4 +28,7 @@ foreach ($planets as $planet) {
 }
 
 header('Content-Type: application/json');
+
 echo json_encode(['data' => $results]);
+
+die();
