@@ -64,13 +64,11 @@
         dataKey: '',
         // how many seconds should pass after a keystroke before we 
         // repopulate the list
-        searchDelay: 0,
+        searchDelay: 200,
         // should the plugin cache ajax requests?
         cache: true,
         // debug for console output
-        // 1 -events only
-        // 2  all function calls
-        debug: 0
+        debug: false
     };
 
     // The actual plugin constructor
