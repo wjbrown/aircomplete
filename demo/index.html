@@ -155,19 +155,18 @@
                 $(function() {
                     var googleAircomplete = $("[aircomplete-google]").aircomplete({
                         data                  : [
-                            {name: "Mercury",       img: "/demo/img/planets/mercury.jpg" },
-                            {name: "Vulcan",        img: "/demo/img/planets/vulcan.jpg"  },
-                            {name: "Venus",         img: "/demo/img/planets/venus.jpg"   },
-                            {name: "Earth",         img: "/demo/img/planets/earth.jpg"   },
-                            {name: "Counter-Earth", img: "/demo/img/planets/counter-earth.jpg" },
-                            {name: "Mars",          img: "/demo/img/planets/mars.jpg"    },
-                            {name: "Ceres",         img: "/demo/img/planets/ceres.jpg"   },
-                            {name: "Jupiter",       img: "/demo/img/planets/jupiter.jpg" },
-                            {name: "Saturn",        img: "/demo/img/planets/saturn.jpg"  },
-                            {name: "Uranus",        img: "/demo/img/planets/urectum.jpg"  },
-                            {name: "Neptune",       img: "/demo/img/planets/neptune.jpg" },
-                            {name: "Planet X",      img: "/demo/img/planets/planetx.jpg"  },
-                            {name: "Nibiru",        img: "/demo/img/planets/nibiru.jpg"  }
+                            {name: "Ceres"},
+                            {name: "Counter-Earth"},
+                            {name: "Jupiter"},
+                            {name: "Earth"},
+                            {name: "Mars"},
+                            {name: "Mercury"},
+                            {name: "Neptune"},
+                            {name: "Nibiru"},
+                            {name: "Saturn"},
+                            {name: "Urectum"},
+                            {name: "Venus"},
+                            {name: "Vulcan"}
                         ],
                         match: function(dataRow, searchTerm) {
                             return dataRow.name.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1;

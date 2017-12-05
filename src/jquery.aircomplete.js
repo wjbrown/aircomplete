@@ -83,19 +83,19 @@
             current : 0
         };
 
-        this._inputw;
-        this._inputh;
+        this._inputw = 0;
+        this._inputh = 0;
 
-        this._$wrap;
-        this._$list;
+        this._$wrap = null;
+        this._$list = null;
 
-        this._oldHtml;
+        this._oldHtml = null;
 
-        this._ajaxRequest;
+        this._ajaxRequest = null;
 
-        this._results;
+        this._results = [];
 
-        this._debounceTimeout;
+        this._debounceTimeout = 0;
 
         this._cache = {};
 
