@@ -89,6 +89,8 @@
         this._$wrap;
         this._$list;
 
+        this._oldHtml;
+
         this._ajaxRequest;
 
         this._results;
@@ -103,6 +105,9 @@
     Plugin.prototype = {
 
         init: function() {
+
+            this._oldHtml = $(this.el).clone();
+
             // get the width/height of the input element
             this._inputw = $(this.el).outerWidth();
             this._inputh = $(this.el).outerHeight();
@@ -139,31 +144,29 @@
             // keep ref to the ul
             this._$list = this._$wrap.find("ul:first");
 
-            $(this._$list)
-                .on('click', function(e) {
-                    this._onClick(e);
-                }.bind(this));
+            $(this._$list).on('click.aircomplete', this._onClick);
 
             $(this.el)
-                .on('focus',   function(e) { this._onFocus(e);   }.bind(this))
-                .on('keydown', function(e) { this._onKeydown(e); }.bind(this))
-                .on('keyup',   function(e) { this._onKeyup(e);   }.bind(this));
+                .on('focus.aircomplete',   this._onFocus.bind(this))
+                .on('keydown.aircomplete', this._onKeydown.bind(this))
+                .on('keyup.aircomplete',   this._onKeyup.bind(this));
 
-            $(document)
-                .on('click', function(e) {
-                    if (!$(e.target).hasClass('aircomplete') && !$(e.target).parents('.aircomplete').size()) {
-                        this._onBlur(e);
-                    }
-                }.bind(this));
+            $(document).on('click.aircomplete', this._onDocumentClick.bind(this));
 
-            $(window)
-                .on('resize',  function(e) { this._onResize(e);  }.bind(this));
+            $(window).on('resize.aircomplete',  this._onWindowResize.bind(this));
         },
 
         // Private Methods
 
-        _onResize: function(e) {
-            this._debug('aircomplete.onResize()');
+        _onDocumentClick: function(e) {
+            this._debug('aircomplete._onDocumentClick()');
+            if (!$(e.target).hasClass('aircomplete') && !$(e.target).parents('.aircomplete').size()) {
+                this._onBlur(e);
+            }
+        },
+
+        _onWindowResize: function(e) {
+            this._debug('aircomplete._onWindowResize()');
             // get the width/height of the input element
             this._inputw = this._$wrap.parent().width();
             // this._inputh = this._$wrap.parent().height();
@@ -175,17 +178,17 @@
         },
 
         _onFocus: function(e) {
-            this._debug('aircomplete.onFocus()');
+            this._debug('aircomplete._onFocus()');
             this._$list.show();
         },
 
         _onBlur: function(e) {
-            this._debug('aircomplete.onBlur()');
+            this._debug('aircomplete._onBlur()');
             this._$list.hide();
         },
 
         _onKeydown: function(e) {
-            this._debug('aircomplete.onKeydown()');
+            this._debug('aircomplete._onKeydown()');
             switch (e.which) {
                 case 9: // tab
                     this._onBlur(e);
@@ -205,7 +208,7 @@
         },
 
         _onKeyup: function(e) {
-            this._debug('aircomplete.onKeyup()');
+            this._debug('aircomplete._onKeyup()');
             e.preventDefault();
             switch (e.which) {
                 case 38: // up & down arrows get ignored
@@ -227,7 +230,7 @@
         },
 
         _onClick: function(e) {
-            this._debug('aircomplete.onClick()');
+            this._debug('aircomplete._onClick()');
             if($(e.target).closest('li.aircomplete-list-item')) {
                 this._state.current = $(e.target).closest('li.aircomplete-list-item').index() + 1;
             }
@@ -435,6 +438,23 @@
             };
             this._$list.html("");
             this.hideList();
+        },
+
+        destroy: function() {
+            // unbind events
+            $(this._$list).off('click.aircomplete');
+            
+            $(this.el)
+                .off('focus.aircomplete')
+                .off('keydown.aircomplete')
+                .off('keyup.aircomplete');
+
+            $(document).off('click.aircomplete');
+
+            $(window).off('resize.aircomplete');
+
+            // undo HTML changes
+            this._$wrap.replaceWith(this._oldHtml);
         }
     };
 
